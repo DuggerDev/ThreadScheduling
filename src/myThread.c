@@ -69,6 +69,13 @@ int main( void )
 
 	// set up your cleanup context here.
 
+	//initialize cleanup
+	getcontext(&myCleanup);
+	myCleanup.uc_link = &myMain;
+	myCleanup.uc_stack.ss_sp = myCleanupStack;
+	myCleanup.uc_stack.ss_size = sizeof(myCleanupStack);
+	makecontext(&myCleanup, cleanup, 0);
+
 	/* Next, you need to set up contexts for the user threads that will run
 	 * task1 and task2. We will assign even number threads to task1 and
 	 * odd number threads to task2. 
@@ -78,6 +85,13 @@ int main( void )
 		// set up your context for each thread here (e.g., context[0])
 		// for thread 0. Make sure you pass the current value of j as
 		// the thread id for task1 and task2.
+
+		//setup context for each thread
+		getcontext(&context[j]);
+		myStack[j] = (char *) malloc(STACKSIZE);
+		context[j].uc_link = &myCleanup;
+		context[j].uc_stack.ss_sp = myStack[j];
+		context[j].uc_stack.ss_size = STACKSIZE;
 		
 		if (j % 2 == 0){
 #if DEBUG == 1
