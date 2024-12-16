@@ -169,7 +169,12 @@ void cleanup() {
 	 * (totalThreads--) each time a thread finishes. When totalThreads
 	 * is equal to 0, this function can return to the main thread.  
 	 */
-	return; 
+	totalThreads--;
+	while(1){
+		if(totalThreads == 0){
+			return;
+		}
+	} 
 }
 
 
