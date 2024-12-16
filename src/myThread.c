@@ -117,7 +117,8 @@ int main( void )
 		// using totalThreads.  When totalThreads is equal to 0, all
 		// tasks have finished and you can return to the main thread.
 		
-		totalThreads++; }
+		totalThreads++;
+	}
 
 #if DEBUG == 1
 	printf("Running threads.\n");
@@ -158,6 +159,15 @@ void signalHandler( int signal )
 	 * task so you may need to consult the status array. Otherwise, you
 	 * may get segmentation faults.
 	 */
+	status[currentThread] = 1;
+	
+	if status[CHANGE TO THREAD ID] = 1 {
+		status[CHANGE TO THREAD ID] = 2;
+		currentThread = threadId;
+	} else {
+		
+	}
+	
 	return;
 }
 
@@ -169,6 +179,9 @@ void cleanup() {
 	 * (totalThreads--) each time a thread finishes. When totalThreads
 	 * is equal to 0, this function can return to the main thread.  
 	 */
+
+	status[] = 0;
+	
 	totalThreads--;
 	while(1){
 		if(totalThreads == 0){
