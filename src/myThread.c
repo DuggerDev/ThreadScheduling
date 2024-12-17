@@ -73,7 +73,7 @@ int main( void )
 	getcontext(&myCleanup);
 	myCleanup.uc_link = &myMain;
 	myCleanup.uc_stack.ss_sp = myCleanupStack;
-	myCleanup.uc_stack.ss_size = sizeof(myCleanupStack);
+	myCleanup.uc_stack.ss_size = STACKSIZE;
 	makecontext(&myCleanup, cleanup, 0);
 
 	/* Next, you need to set up contexts for the user threads that will run
@@ -98,6 +98,8 @@ int main( void )
 			printf("Creating task1 thread[%d].\n", j);
 #endif
 			// map the corresponding context to task1
+			makecontext(&context[j], (void (*)(void)) task1, 1, j);
+
 		}
 		else
 		{
@@ -105,6 +107,7 @@ int main( void )
 			printf("Creating task2 thread[%d].\n", j);
 #endif
 			// map the corresponding context to task2
+			makecontext(&context[j], (void (*)(void)) task2, 1, j);
 		}
 
 		// you may want to keep the status of each thread using the
@@ -128,7 +131,7 @@ int main( void )
 	 * running thread.
 	 */
 
-		// start running your threads here.
+		// start running your threads here. swap main and context[0]
 
 	/* If you reach this point, your threads have all finished. It is
 	 * time to free the stack space created for each thread.
@@ -160,14 +163,32 @@ void signalHandler( int signal )
 	 * may get segmentation faults.
 	 */
 	status[currentThread] = 1;
-	
-	if status[CHANGE TO THREAD ID] = 1 {
-		status[CHANGE TO THREAD ID] = 2;
-		currentThread = threadId;
-	} else {
-		
+
+	//create a next thread
+	int nextThread = currentThread + 1;
+
+	//when next thread is 0
+	while(nextThread == 0){
+		//check if next + 1 is bigger than threads(12)
+		if(nextThread + 1 > THREADS){
+			//if next thread is bigger than thread set next thread to 0
+			nextThread = 0;
+		}
+		else{
+			//if not increment next
+			nextThread++;
+		}
 	}
-	
+
+	//set status of next to 2
+	status[nextThread] = 2;
+	//create a previous thread which we set to current
+	int previousThread = currentThread;
+	//disect the current thread to next thread
+	currentThread = nextThread;
+	//swap the context from previous to current
+	swapcontext(&context[previousThread], &context[currentThread]);
+
 	return;
 }
 
@@ -180,14 +201,15 @@ void cleanup() {
 	 * is equal to 0, this function can return to the main thread.  
 	 */
 
-	status[] = 0;
+	status[currentThread] = 0;
 	
 	totalThreads--;
-	while(1){
+	//while(1){
 		if(totalThreads == 0){
-			return;
+			setcontext(&myMain);
+			//return;
 		}
-	} 
+	//} 
 }
 
 
