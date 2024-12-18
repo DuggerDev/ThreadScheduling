@@ -47,7 +47,7 @@ mysem_t mutex;
 #endif
 
 int main( void )
-{44
+{
 	char * myStack[THREADS];
 	char myCleanupStack[STACKSIZE];
 	int j;
@@ -97,6 +97,7 @@ int main( void )
 #if DEBUG == 1
 			printf("Creating task1 thread[%d].\n", j);
 #endif
+			//printf("IS ANYTHING WORKING WTF\n");
 			// map the corresponding context to task1
 			makecontext(&context[j], task1, 1, j); //idk what the fuck is going on this wont call task1 to save its life
 
@@ -131,7 +132,7 @@ int main( void )
 	 * running thread.
 	 */
 
-		// start running your threads here. swap main and context[0]
+		// start running your threads here.
 		swapcontext(&myMain, &context[currentThread]);
 
 	/* If you reach this point, your threads have all finished. It is
@@ -169,9 +170,9 @@ void signalHandler( int signal )
 	int nextThread = currentThread + 1;
 
 	//when next thread is 0
-	while(status[nextThread] == 0){
+	if(status[nextThread] == 0){
 		//check if next + 1 is bigger than threads(12), i.e we are at the end
-		if((nextThread + 1) > THREADS){
+		if(nextThread + 1 > THREADS){
 			//if next thread is bigger than threads set next thread to 0
 			nextThread = 0;
 		}
@@ -184,8 +185,13 @@ void signalHandler( int signal )
 	//set status of next to 2... i.e is running
 	status[nextThread] = 2;
 
+	//do some reassigning
+	int previousThread = currentThread;
+	currentThread = nextThread;
+
 	//swap the context from current to next
-	swapcontext(&context[currentThread], &context[nextThread]);
+	swapcontext(&context[previousThread], &context[currentThread]); //apparently you cant just assign current and next so we have to do some fandangling here
+	//the above line didnt work until we did the temp variable, because basically current thread was never getting updated
 }
 
 void cleanup() {
@@ -207,7 +213,6 @@ void cleanup() {
 		setcontext(&myMain);
 	}
 }
-
 
 void task1(int tid)
 {
