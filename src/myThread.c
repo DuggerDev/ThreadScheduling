@@ -4,8 +4,8 @@
  */
 
 /* Enter the names of all team members here:
- * Member 1:
- * Member 2:
+ * Member 1: Joshua Dugger
+ * Member 2: Samuel Dubois
  * Member 3:
  */
 
@@ -32,7 +32,7 @@
 //#define MUTEX MYSEM 
 #define MUTEX NONE 
 //
-#define DEBUG 1
+#define DEBUG 1 //this doesnt seem to work at all
 
 ucontext_t context[THREADS], myCleanup, myMain;
 int status[THREADS];
@@ -47,7 +47,7 @@ mysem_t mutex;
 #endif
 
 int main( void )
-{
+{44
 	char * myStack[THREADS];
 	char myCleanupStack[STACKSIZE];
 	int j;
@@ -71,9 +71,9 @@ int main( void )
 
 	//initialize cleanup
 	getcontext(&myCleanup);
-	myCleanup.uc_link = &myMain;
 	myCleanup.uc_stack.ss_sp = myCleanupStack;
-	myCleanup.uc_stack.ss_size = STACKSIZE;
+	myCleanup.uc_stack.ss_size = STACKSIZE; //we already have the stackzie provided so use that
+	myCleanup.uc_link = &myMain; //link it to the main
 	makecontext(&myCleanup, cleanup, 0);
 
 	/* Next, you need to set up contexts for the user threads that will run
@@ -88,17 +88,17 @@ int main( void )
 
 		//setup context for each thread
 		getcontext(&context[j]);
-		myStack[j] = (char *) malloc(STACKSIZE);
-		context[j].uc_link = &myCleanup;
+		myStack[j] = malloc(STACKSIZE);
 		context[j].uc_stack.ss_sp = myStack[j];
 		context[j].uc_stack.ss_size = STACKSIZE;
+		context[j].uc_link = &myCleanup;
 		
 		if (j % 2 == 0){
 #if DEBUG == 1
 			printf("Creating task1 thread[%d].\n", j);
 #endif
 			// map the corresponding context to task1
-			makecontext(&context[j], (void (*)(void)) task1, 1, j);
+			makecontext(&context[j], task1, 1, j); //idk what the fuck is going on this wont call task1 to save its life
 
 		}
 		else
@@ -107,7 +107,7 @@ int main( void )
 			printf("Creating task2 thread[%d].\n", j);
 #endif
 			// map the corresponding context to task2
-			makecontext(&context[j], (void (*)(void)) task2, 1, j);
+			makecontext(&context[j], task2, 1, j);
 		}
 
 		// you may want to keep the status of each thread using the
@@ -132,13 +132,14 @@ int main( void )
 	 */
 
 		// start running your threads here. swap main and context[0]
+		swapcontext(&myMain, &context[currentThread]);
 
 	/* If you reach this point, your threads have all finished. It is
 	 * time to free the stack space created for each thread.
 	 */
 	for(j = 0; j < THREADS; j++)
 	{	
-	//		free(myStack[j]);
+		free(myStack[j]);
 	}
 	printf("==========================\n");
 	printf("sharedCounter = %d\n", sharedCounter);
@@ -168,10 +169,10 @@ void signalHandler( int signal )
 	int nextThread = currentThread + 1;
 
 	//when next thread is 0
-	while(nextThread == 0){
-		//check if next + 1 is bigger than threads(12)
-		if(nextThread + 1 > THREADS){
-			//if next thread is bigger than thread set next thread to 0
+	while(status[nextThread] == 0){
+		//check if next + 1 is bigger than threads(12), i.e we are at the end
+		if((nextThread + 1) > THREADS){
+			//if next thread is bigger than threads set next thread to 0
 			nextThread = 0;
 		}
 		else{
@@ -180,16 +181,11 @@ void signalHandler( int signal )
 		}
 	}
 
-	//set status of next to 2
+	//set status of next to 2... i.e is running
 	status[nextThread] = 2;
-	//create a previous thread which we set to current
-	int previousThread = currentThread;
-	//disect the current thread to next thread
-	currentThread = nextThread;
-	//swap the context from previous to current
-	swapcontext(&context[previousThread], &context[currentThread]);
 
-	return;
+	//swap the context from current to next
+	swapcontext(&context[currentThread], &context[nextThread]);
 }
 
 void cleanup() {
@@ -201,19 +197,19 @@ void cleanup() {
 	 * is equal to 0, this function can return to the main thread.  
 	 */
 
+	//set the status to 0
 	status[currentThread] = 0;
 	
+	//decrement the total threads
 	totalThreads--;
-	//while(1){
-		if(totalThreads == 0){
-			setcontext(&myMain);
-			//return;
-		}
-	//} 
+	//if we are at 0 set the context back to main
+	if(totalThreads == 0){
+		setcontext(&myMain);
+	}
 }
 
 
-void task1( int tid)
+void task1(int tid)
 {
 	int i, count = 0;
 	while (count < BOUND)
@@ -238,7 +234,7 @@ void task1( int tid)
 	}		
 }
 
-void task2( int tid)
+void task2(int tid)
 {
 	int i, count = 0; 
 	while (count < BOUND)
